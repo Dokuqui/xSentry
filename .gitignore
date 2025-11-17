@@ -1,2 +1,4 @@
 .idea/
 xSentry.exe
+custom.rules.toml
+empty.ignore
