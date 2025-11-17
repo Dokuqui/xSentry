@@ -198,7 +198,7 @@ keywords = ["password"]
 ###################################################
 [[rules]]
 name = "Base64-Encoded 32-byte Key"
-regex = '''(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{43}=?(?![A-Za-z0-9+/])'''
+regex = '''\b[A-Za-z0-9+/]{43}=?\b'''
 keywords = ["key"]
 
 [[rules]]
@@ -229,7 +229,7 @@ keywords = ["secrets"]
 ###################################################
 [[rules]]
 name = "High Entropy String"
-regex = '''(?:(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{50,}(?![A-Za-z0-9+/]))'''
+regex = '''\b[A-Za-z0-9+/]{50,}\b'''
 keywords = ["entropy"]
 
 entropy = 4.5

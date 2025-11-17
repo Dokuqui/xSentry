@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Dokuqui/xSentry/internal/rules"
 )
 
 const defaultRulesFile = "rules.example.toml"
+
+const ignoreComment = "xSentry-ignore"
 
 func main() {
 	loadedRules, err := rules.LoadRules(defaultRulesFile)
@@ -31,6 +34,10 @@ func main() {
 	for scanner.Scan() {
 		lineNumber++
 		line := scanner.Text()
+
+		if strings.Contains(line, ignoreComment) {
+			continue
+		}
 
 		for _, rule := range loadedRules {
 			if rule.CompiledRegex == nil {
