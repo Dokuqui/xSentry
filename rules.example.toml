@@ -171,9 +171,10 @@ regex = '''(?i)bearer[\s"']+([A-Za-z0-9\.\-_]{20,})'''
 keywords = ["bearer"]
 
 [[rules]]
-name = "Generic API Key (Len ≥ 16)"
-regex = '''(?i)(api|secret|token|auth|key)[^A-Za-z0-9]{0,10}["']?[A-Za-z0-9_\-]{16,128}["']?'''
-keywords = ["api", "key"]
+name = "Generic API Key"
+regex = '''(?i)(api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9_\-]{16,})["']?'''
+keywords = ["key", "api", "token", "secret"]
+entropy = 3.5
 
 [[rules]]
 name = "JWT Token"
@@ -232,4 +233,4 @@ name = "High Entropy String"
 regex = '''\b[A-Za-z0-9+/]{50,}\b'''
 keywords = ["entropy"]
 
-entropy = 4.5
+entropy = 4.0

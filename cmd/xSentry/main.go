@@ -1,17 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/Dokuqui/xSentry/internal/rules"
+	"github.com/Dokuqui/xSentry/internal/scanner"
 )
 
 const defaultRulesFile = "rules.example.toml"
-
-const ignoreComment = "xSentry-ignore"
 
 func main() {
 	loadedRules, err := rules.LoadRules(defaultRulesFile)
@@ -27,32 +24,9 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "✅ [xSentry] Successfully loaded %d rules.\n", len(loadedRules))
 
-	foundSecret := false
-	lineNumber := 0
-	scanner := bufio.NewScanner(os.Stdin)
-
-	for scanner.Scan() {
-		lineNumber++
-		line := scanner.Text()
-
-		if strings.Contains(line, ignoreComment) {
-			continue
-		}
-
-		for _, rule := range loadedRules {
-			if rule.CompiledRegex == nil {
-				continue
-			}
-
-			if rule.CompiledRegex.MatchString(line) {
-				fmt.Fprintf(os.Stderr, "🚨 [xSentry] Secret found on line %d: %s\n", lineNumber, rule.Name)
-				foundSecret = true
-			}
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
+	foundSecret, err := scanner.RunScanner(os.Stdin, loadedRules)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error during scan: %v\n", err)
 		os.Exit(2)
 	}
 

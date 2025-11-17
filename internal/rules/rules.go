@@ -16,6 +16,8 @@ type Rule struct {
 	Regex    string   `toml:"regex"`
 	Keywords []string `toml:"keywords"`
 
+	Entropy float64 `toml:"entropy,omitempty"`
+
 	CompiledRegex *regexp.Regexp `toml:"-"`
 }
 
@@ -26,8 +28,12 @@ func LoadRules(filePath string) ([]Rule, error) {
 		return nil, fmt.Errorf("failed to decode rules file: %w", err)
 	}
 
-	for i := range config.Rules {
-		r := &config.Rules[i]
+	var compiledRules []Rule
+	for _, r := range config.Rules {
+		if r.Regex == "" {
+			fmt.Printf("Warning: Skipping rule '%s', regex is empty.\n", r.Name)
+			continue
+		}
 
 		compiled, err := regexp.Compile(r.Regex)
 		if err != nil {
@@ -35,7 +41,8 @@ func LoadRules(filePath string) ([]Rule, error) {
 			continue
 		}
 		r.CompiledRegex = compiled
+		compiledRules = append(compiledRules, r)
 	}
 
-	return config.Rules, nil
+	return compiledRules, nil
 }
