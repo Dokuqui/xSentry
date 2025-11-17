@@ -1,0 +1,235 @@
+###################################################
+# AWS
+###################################################
+[[rules]]
+name = "AWS Access Key ID"
+regex = '''AKIA[0-9A-Z]{16}'''
+keywords = ["AKIA"]
+
+[[rules]]
+name = "AWS Secret Access Key"
+regex = '''(?i)aws(.{0,20})?(secret|access)?.{0,20}key(.{0,20})?[A-Za-z0-9/+=]{40}'''
+keywords = ["aws", "secret"]
+
+[[rules]]
+name = "AWS Session Token"
+regex = '''(?i)aws(.{0,20})?session(.{0,20})?token["']?[:= ]["']?[A-Za-z0-9/+=]{16,}'''
+keywords = ["session token"]
+
+###################################################
+# Google Cloud
+###################################################
+[[rules]]
+name = "GCP API Key"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+keywords = ["AIza"]
+
+[[rules]]
+name = "Google OAuth Client Secret"
+regex = '''(?i)client_secret["']?\s*[:=]\s*["'][A-Za-z0-9-_]{24,}["']'''
+keywords = ["client_secret"]
+
+[[rules]]
+name = "Google Service Account Key File"
+regex = '''"type":\s*"service_account"'''
+keywords = ["service_account"]
+
+###################################################
+# Azure
+###################################################
+[[rules]]
+name = "Azure Storage Account Key"
+regex = '''(?i)azure(.{0,20})?(account|storage).{0,20}key(.{0,20})?[A-Za-z0-9+/]{43}=?'''
+keywords = ["azure"]
+
+[[rules]]
+name = "Azure Connection String"
+regex = '''(DefaultEndpointsProtocol|AccountName|AccountKey|BlobEndpoint)=.{10,}'''
+keywords = ["AccountKey"]
+
+###################################################
+# GitHub, GitLab, Bitbucket
+###################################################
+[[rules]]
+name = "GitHub PAT"
+regex = '''ghp_[A-Za-z0-9]{36}'''
+keywords = ["ghp_"]
+
+[[rules]]
+name = "GitHub OAuth"
+regex = '''gho_[A-Za-z0-9]{36}'''
+keywords = ["gho_"]
+
+[[rules]]
+name = "GitHub Refresh Token"
+regex = '''ghr_[A-Za-z0-9]{36}'''
+keywords = ["ghr_"]
+
+[[rules]]
+name = "GitLab Personal Access Token"
+regex = '''glpat-[A-Za-z0-9\-_]{20,}'''
+keywords = ["glpat"]
+
+[[rules]]
+name = "Bitbucket App Password"
+regex = '''(?i)bitbucket.*app.*password.*["'][A-Za-z0-9-_]{8,}["']'''
+keywords = ["bitbucket"]
+
+###################################################
+# OAuth & Identity
+###################################################
+[[rules]]
+name = "OAuth Access Token"
+regex = '''ya29\.[0-9A-Za-z\-_]{30,}'''
+keywords = ["ya29"]
+
+[[rules]]
+name = "Microsoft Graph Token"
+regex = '''Ew[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+'''
+keywords = ["microsoft"]
+
+[[rules]]
+name = "Slack Token"
+regex = '''xox[baprs]-[A-Za-z0-9\-]{10,50}'''
+keywords = ["xox"]
+
+[[rules]]
+name = "Discord Bot Token"
+regex = '''[A-Za-z0-9]{24}\.[A-Za-z0-9_\-]{6}\.[A-Za-z0-9_\-]{27}'''
+keywords = ["discord"]
+
+###################################################
+# Payment Providers
+###################################################
+[[rules]]
+name = "Stripe Secret Key"
+regex = '''sk_(live|test)_[A-Za-z0-9]{24}'''
+keywords = ["sk_live", "sk_test"]
+
+[[rules]]
+name = "Stripe Restricted Key"
+regex = '''rk_(live|test)_[A-Za-z0-9]{24}'''
+keywords = ["rk_live"]
+
+[[rules]]
+name = "PayPal Client Secret"
+regex = '''[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}'''
+keywords = ["paypal"]
+
+###################################################
+# Database URLs
+###################################################
+[[rules]]
+name = "PostgreSQL Connection String"
+regex = '''postgres:\/\/[^:\s]+:[^@\s]+@[^:\s]+:[0-9]+\/[A-Za-z0-9_-]+'''
+keywords = ["postgres://"]
+
+[[rules]]
+name = "MySQL Connection String"
+regex = '''mysql:\/\/[^:\s]+:[^@\s]+@[^:\s]+\/[A-Za-z0-9_-]+'''
+keywords = ["mysql://"]
+
+[[rules]]
+name = "MongoDB Connection String"
+regex = '''mongodb(\+srv)?:\/\/[^:\s]+:[^@\s]+@[^\/]+\/[^\s]+'''
+keywords = ["mongodb"]
+
+[[rules]]
+name = "Redis Connection String"
+regex = '''redis:\/\/[^:\s]+:[^@\s]+@[^:\s]+:[0-9]+'''
+keywords = ["redis://"]
+
+###################################################
+# Private Keys
+###################################################
+[[rules]]
+name = "RSA Private Key"
+regex = '''-----BEGIN RSA PRIVATE KEY-----'''
+keywords = ["PRIVATE"]
+
+[[rules]]
+name = "OpenSSH Private Key"
+regex = '''-----BEGIN OPENSSH PRIVATE KEY-----'''
+keywords = ["OPENSSH"]
+
+[[rules]]
+name = "DSA Private Key"
+regex = '''-----BEGIN DSA PRIVATE KEY-----'''
+keywords = ["DSA"]
+
+[[rules]]
+name = "EC Private Key"
+regex = '''-----BEGIN EC PRIVATE KEY-----'''
+keywords = ["EC PRIVATE KEY"]
+
+###################################################
+# Generic Tokens & Secrets
+###################################################
+[[rules]]
+name = "Bearer Token"
+regex = '''(?i)bearer[\s"']+([A-Za-z0-9\.\-_]{20,})'''
+keywords = ["bearer"]
+
+[[rules]]
+name = "Generic API Key (Len ≥ 16)"
+regex = '''(?i)(api|secret|token|auth|key)[^A-Za-z0-9]{0,10}["']?[A-Za-z0-9_\-]{16,128}["']?'''
+keywords = ["api", "key"]
+
+[[rules]]
+name = "JWT Token"
+regex = '''eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9._-]{10,}\.[A-Za-z0-9._-]{10,}'''
+keywords = ["jwt"]
+
+###################################################
+# Password Heuristics
+###################################################
+[[rules]]
+name = "Hardcoded Password"
+regex = '''(?i)(password|passwd|pwd)["']?\s*[:=]\s*["']?[^\s"']{6,100}["']?'''
+keywords = ["password"]
+
+[[rules]]
+name = "Username + Password Combo"
+regex = '''(?i)(user(name)?|login)[^A-Za-z0-9]{0,10}[A-Za-z0-9._-]{3,30}[^A-Za-z0-9]{1,5}(pass(word)?|pwd)[^A-Za-z0-9]{0,10}[^\s"']{6,100}'''
+keywords = ["password"]
+
+###################################################
+# Certificate and Cryptographic Material
+###################################################
+[[rules]]
+name = "Base64-Encoded 32-byte Key"
+regex = '''(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{43}=?(?![A-Za-z0-9+/])'''
+keywords = ["key"]
+
+[[rules]]
+name = "PKCS8 Private Key"
+regex = '''-----BEGIN PRIVATE KEY-----'''
+keywords = ["PRIVATE"]
+
+###################################################
+# Terraform / Kubernetes / CI/CD Secrets
+###################################################
+[[rules]]
+name = "Terraform Variable Secret"
+regex = '''(?i)(variable).*(".*(secret|password|token).*)'''
+keywords = ["variable"]
+
+[[rules]]
+name = "Kubernetes Secret YAML"
+regex = '''(?i)apiVersion: v1\s+kind: Secret'''
+keywords = ["secret"]
+
+[[rules]]
+name = "GitHub Actions Secret"
+regex = '''\$\{\{\s*secrets\.[A-Z0-9_]+\s*\}\}'''
+keywords = ["secrets"]
+
+###################################################
+# High Entropy Secrets (catch unknown patterns)
+###################################################
+[[rules]]
+name = "High Entropy String"
+regex = '''(?:(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{50,}(?![A-Za-z0-9+/]))'''
+keywords = ["entropy"]
+
+entropy = 4.5
