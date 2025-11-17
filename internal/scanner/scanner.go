@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Dokuqui/xSentry/internal/ignore"
 	"github.com/Dokuqui/xSentry/internal/rules"
 )
 
@@ -18,7 +19,7 @@ type ScanResult struct {
 	Details     string
 }
 
-func RunScanner(input io.Reader, loadedRules []rules.Rule) (bool, error) {
+func RunScanner(input io.Reader, loadedRules []rules.Rule, ign *ignore.Ignorer) (bool, error) {
 	var findings []ScanResult
 	lineNumber := 0
 	scanner := bufio.NewScanner(input)
@@ -32,6 +33,10 @@ func RunScanner(input io.Reader, loadedRules []rules.Rule) (bool, error) {
 		}
 
 		for _, rule := range loadedRules {
+			if ign.IsRuleIgnored(rule.Name) {
+				continue
+			}
+
 			matches := rule.CompiledRegex.FindAllStringSubmatch(line, -1)
 			if len(matches) == 0 {
 				continue
