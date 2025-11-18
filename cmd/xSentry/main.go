@@ -8,6 +8,7 @@ import (
 
 	"github.com/Dokuqui/xSentry/internal/git"
 	"github.com/Dokuqui/xSentry/internal/ignore"
+	"github.com/Dokuqui/xSentry/internal/reporter"
 	"github.com/Dokuqui/xSentry/internal/rules"
 	"github.com/Dokuqui/xSentry/internal/scanner"
 )
@@ -22,6 +23,7 @@ func main() {
 	scanHistory := flag.Bool("scan-history", false, "Scan all commits in history")
 	installHook := flag.Bool("install-hook", false, "Install the xSentry pre-commit hook")
 	scanStaged := flag.Bool("scan-staged", false, "Run in pre-commit hook mode (scans staged files)")
+	reportURL := flag.String("report-url", "", "URL to POST JSON findings to")
 	flag.Parse()
 
 	if *installHook {
@@ -51,7 +53,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	var foundSecret bool
+	var allFindings []scanner.Finding
 	var scanErr error
 
 	if *scanStaged {
@@ -61,10 +63,12 @@ func main() {
 			fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error getting staged files: %v\n", err)
 			os.Exit(2)
 		}
-		if patchString == "" {
-			foundSecret = false
-		} else {
-			foundSecret, scanErr = scanner.ScanPatch(patchString, loadedRules, ign)
+		if patchString != "" {
+			findings, err := scanner.ScanPatch(patchString, loadedRules, ign)
+			if err != nil {
+				scanErr = err
+			}
+			allFindings = append(allFindings, findings...)
 		}
 
 	} else if *repoPath != "" {
@@ -83,13 +87,11 @@ func main() {
 				os.Exit(2)
 			}
 			for patchString := range patchChannel {
-				foundInPatch, patchErr := scanner.ScanPatch(patchString, loadedRules, ign)
-				if patchErr != nil {
-					fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error during patch scan: %v\n", patchErr)
+				findings, err := scanner.ScanPatch(patchString, loadedRules, ign)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error during patch scan: %v\n", err)
 				}
-				if foundInPatch {
-					foundSecret = true
-				}
+				allFindings = append(allFindings, findings...)
 			}
 		} else {
 			patchString, err := git.GetHeadPatch(repo)
@@ -97,7 +99,11 @@ func main() {
 				fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error getting HEAD patch: %v\n", err)
 				os.Exit(2)
 			}
-			foundSecret, scanErr = scanner.ScanPatch(patchString, loadedRules, ign)
+			findings, err := scanner.ScanPatch(patchString, loadedRules, ign)
+			if err != nil {
+				scanErr = err
+			}
+			allFindings = append(allFindings, findings...)
 		}
 	} else {
 		fmt.Fprintf(os.Stderr, "✅ [xSentry] Running in stdin mode...\n")
@@ -107,11 +113,13 @@ func main() {
 			os.Exit(2)
 		}
 
-		if len(lines) == 0 {
-			foundSecret = false
-		} else {
+		if len(lines) > 0 {
 			patchString := scanner.BuildFakePatch(string(lines))
-			foundSecret, scanErr = scanner.ScanPatch(patchString, loadedRules, ign)
+			findings, err := scanner.ScanPatch(patchString, loadedRules, ign)
+			if err != nil {
+				scanErr = err
+			}
+			allFindings = append(allFindings, findings...)
 		}
 	}
 
@@ -120,7 +128,11 @@ func main() {
 		os.Exit(2)
 	}
 
-	if foundSecret {
+	if err := reporter.ReportFindings(allFindings, *reportURL); err != nil {
+		fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error sending report: %v\n", err)
+	}
+
+	if len(allFindings) > 0 {
 		os.Exit(1)
 	}
 
