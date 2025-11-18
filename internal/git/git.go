@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -75,4 +76,20 @@ func GetCommitPatches(repo *git.Repository) (<-chan string, error) {
 		})
 	}()
 	return patchChannel, nil
+}
+
+func GetStagedPatch() (string, error) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return "", fmt.Errorf("git executable not found in PATH")
+	}
+
+	cmd := exec.Command(gitPath, "diff", "--staged", "--diff-filter=ACMRTUXB")
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to run 'git diff --staged': %v\nOutput: %s", err, string(output))
+	}
+
+	return string(output), nil
 }
