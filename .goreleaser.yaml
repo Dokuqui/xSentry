@@ -16,7 +16,7 @@ builds:
     binary: xSentry
 
 archives:
-    name_template: >-
+  - name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
       {{- .Os }}_
