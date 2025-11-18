@@ -20,19 +20,29 @@ func main() {
 	ignorePath := flag.String("ignore", defaultIgnoreFile, "Path to the ignore file")
 	repoPath := flag.String("path", "", "Path to a Git repository to scan")
 	scanHistory := flag.Bool("scan-history", false, "Scan all commits in history")
+	installHook := flag.Bool("install-hook", false, "Install the xSentry pre-commit hook")
+	scanStaged := flag.Bool("scan-staged", false, "Run in pre-commit hook mode (scans staged files)")
 	flag.Parse()
+
+	if *installHook {
+		err := installPreCommitHook()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "🚨 [xSentry] Failed to install hook: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("✅ [xSentry] Pre-commit hook installed successfully.")
+		os.Exit(0)
+	}
 
 	loadedRules, err := rules.LoadRules(*rulesPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error loading rules file '%s': %v\n", *rulesPath, err)
 		os.Exit(2)
 	}
-
 	if len(loadedRules) == 0 {
 		fmt.Fprintf(os.Stderr, "🚨 [xSentry] No rules loaded. Exiting.\n")
 		os.Exit(2)
 	}
-
 	fmt.Fprintf(os.Stderr, "✅ [xSentry] Successfully loaded %d rules.\n", len(loadedRules))
 
 	ign, err := ignore.NewIgnorer(*ignorePath)
@@ -42,9 +52,23 @@ func main() {
 	}
 
 	var foundSecret bool
-	if *repoPath != "" {
-		fmt.Fprintf(os.Stderr, "✅ [xSentry] Running in Git-aware mode on path: %s\n", *repoPath)
+	var scanErr error
 
+	if *scanStaged {
+		fmt.Fprintf(os.Stderr, "✅ [xSentry] Running in pre-commit hook mode...\n")
+		patchString, err := git.GetStagedPatch()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error getting staged files: %v\n", err)
+			os.Exit(2)
+		}
+		if patchString == "" {
+			foundSecret = false
+		} else {
+			foundSecret, scanErr = scanner.ScanPatch(patchString, loadedRules, ign)
+		}
+
+	} else if *repoPath != "" {
+		fmt.Fprintf(os.Stderr, "✅ [xSentry] Running in Git-aware mode on path: %s\n", *repoPath)
 		repo, err := git.OpenRepository(*repoPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "🚨 [xSentry] %v\n", err)
@@ -53,17 +77,15 @@ func main() {
 
 		if *scanHistory {
 			fmt.Fprintf(os.Stderr, "✅ [xSentry] Starting full history scan...\n\n")
-
 			patchChannel, err := git.GetCommitPatches(repo)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error getting commit history: %v\n", err)
 				os.Exit(2)
 			}
-
 			for patchString := range patchChannel {
-				foundInPatch, scanErr := scanner.ScanPatch(patchString, loadedRules, ign)
-				if scanErr != nil {
-					fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error during patch scan: %v\n", scanErr)
+				foundInPatch, patchErr := scanner.ScanPatch(patchString, loadedRules, ign)
+				if patchErr != nil {
+					fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error during patch scan: %v\n", patchErr)
 				}
 				if foundInPatch {
 					foundSecret = true
@@ -75,14 +97,10 @@ func main() {
 				fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error getting HEAD patch: %v\n", err)
 				os.Exit(2)
 			}
-			foundSecret, err = scanner.ScanPatch(patchString, loadedRules, ign)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error during patch scan: %v\n", err)
-			}
+			foundSecret, scanErr = scanner.ScanPatch(patchString, loadedRules, ign)
 		}
 	} else {
 		fmt.Fprintf(os.Stderr, "✅ [xSentry] Running in stdin mode...\n")
-
 		lines, readErr := io.ReadAll(os.Stdin)
 		if readErr != nil {
 			fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error reading from stdin: %v\n", readErr)
@@ -90,17 +108,15 @@ func main() {
 		}
 
 		if len(lines) == 0 {
-			err = nil
 			foundSecret = false
 		} else {
 			patchString := scanner.BuildFakePatch(string(lines))
-
-			foundSecret, err = scanner.ScanPatch(patchString, loadedRules, ign)
+			foundSecret, scanErr = scanner.ScanPatch(patchString, loadedRules, ign)
 		}
 	}
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error during scan: %v\n", err)
+	if scanErr != nil {
+		fmt.Fprintf(os.Stderr, "🚨 [xSentry] Error during scan: %v\n", scanErr)
 		os.Exit(2)
 	}
 
