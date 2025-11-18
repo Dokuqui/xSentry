@@ -3,7 +3,8 @@ version: 2
 project_name: xSentry
 
 builds:
-  - env:
+  - main: ./cmd/xSentry
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -15,12 +16,14 @@ builds:
     binary: xSentry
 
 archives:
-  - format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
       {{- .Os }}_
       {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
 
 checksum:
   name_template: 'checksums.txt'
