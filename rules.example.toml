@@ -221,9 +221,9 @@ regex = '''(?i)apiVersion: v1\s+kind: Secret'''
 keywords = ["secret"]
 
 [[rules]]
-name = "GitHub Actions Secret"
-regex = '''\$\{\{\s*secrets\.[A-Z0-9_]+\s*\}\}'''
-keywords = ["secrets"]
+name = "Hardcoded GitHub Action Value"
+regex = '''(?i)(password|token|secret|key)\s*:\s*["']?[^$"'{\s].{8,}'''
+keywords = ["password", "token", "secret", "key"]
 
 ###################################################
 # High Entropy Secrets (catch unknown patterns)

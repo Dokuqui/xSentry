@@ -18,35 +18,34 @@ committed, or as a CI/CD step to scan your entire repository history.
 
 ## 📦 Installation
 
-### 1. Build from Source
+xSentry can be installed via pre-compiled binary, Docker, or by building from source.
 
-You need Go (1.21+) installed to build xSentry.
+### Option 1: Download Binary (Recommended for Local Dev)
+
+Perfect for Python, C#, or Node.js developers who don't have Go installed.
+
+1.  Go to the [Releases page](https://github.com/dokuqui/xSentry/releases).
+2.  Download the archive for your OS (Windows, macOS, or Linux).
+3.  Extract the `xSentry` (or `xSentry.exe`) binary to your project root.
+
+### Option 2: Docker (Recommended for CI/CD)
+
+Use the official Docker image to run xSentry in any CI pipeline without installing dependencies.
 
 ```bash
-# Clone the repository
-git clone [https://github.com/your-org/xSentry.git](https://github.com/your-org/xSentry.git)
+docker pull ghcr.io/dokuqui/xsentry:latest
+docker run -v $(pwd):/src ghcr.io/dokuqui/xsentry -path=/src --scan-history
+```
+
+### Option 3: Build from Source (For Go Developers)
+
+If you have Go 1.21+ installed:
+
+```bash
+git clone [https://github.com/dokuqui/xSentry.git](https://github.com/dokuqui/xSentry.git)
 cd xSentry
-
-# Build the binary
-# On Linux/macOS:
 go build -o xSentry ./cmd/xSentry
-
-# On Windows:
-go build -o xSentry.exe ./cmd/xSentry
 ```
-
-### 2. Install Pre-commit Hook (Recommended)
-
-To prevent secrets from ever being committed, install xSentry as a pre-commit hook.
-
-```bash
-# Run the built-in installer
-./xSentry --install-hook
-```
-
-That's it! Now, every time you run ``git commit``, xSentry will automatically scan your staged files. If a secret is
-found,
-the commit will be blocked.
 
 ---
 
@@ -138,21 +137,21 @@ Add this to ``.github/workflows/security.yml``:
 
 ```yaml
 jobs:
-  security_scan:
+  xSentry:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/dokuqui/xsentry:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch full history
+          fetch-depth: 0
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-
-      - name: Build & Scan
-        run: |
-          go build -o xSentry ./cmd/xSentry
-          ./xSentry -path="." --scan-history
+      - name: Run Scan
+        run: xSentry -path="." --scan-history
 ```
 
 ### GitLab CI
@@ -160,13 +159,37 @@ jobs:
 Add this to ``.gitlab-ci.yml``:
 
 ```yaml
-secret_detection:
-  stage: test
-  image: golang:1.21
+stages:
+  - security
+
+secret_scan:
+  stage: security
+  image: ghcr.io/dokuqui/xsentry:latest
   script:
-    - go build -o xSentry ./cmd/xSentry
-    - ./xSentry -path="." --scan-history
+    - xSentry -path="." --scan-history
   allow_failure: false
+```
+
+### Azure CI
+
+Azure pipelines often run on Windows agents. Downloading the binary is usually faster than pulling Docker on Windows.
+Add
+this to ``azure-pipelines.yml``:
+
+```yaml
+# azure-pipelines.yml
+steps:
+  - task: PowerShell@2
+    displayName: "Install and Run xSentry"
+    inputs:
+      targetType: 'inline'
+      script: |
+        $url = "https://github.com/dokuqui/xSentry/releases/latest/download/xSentry_Windows_x86_64.tar.gz"
+        Invoke-WebRequest -Uri $url -OutFile "xSentry.tar.gz"
+
+        tar -xvf xSentry.tar.gz
+
+        .\xSentry.exe -path="." --scan-history
 ```
 
 ### Reporting to Dashboard
