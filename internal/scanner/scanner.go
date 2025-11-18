@@ -3,7 +3,6 @@ package scanner
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,18 +15,18 @@ const ignoreComment = "xSentry-ignore"
 
 var hunkHeaderRegex = regexp.MustCompile(`^@@ \-\d+,\d+ \+(\d+),(\d+) @@`)
 
-type ScanResult struct {
-	FoundSecret bool
-	Line        int
-	Details     string
+type Finding struct {
+	File    string `json:"file"`
+	Line    int    `json:"line"`
+	Details string `json:"details"`
 }
 
-func ScanPatch(patchString string, loadedRules []rules.Rule, ign *ignore.Ignorer) (bool, error) {
+func ScanPatch(patchString string, loadedRules []rules.Rule, ign *ignore.Ignorer) ([]Finding, error) {
 	scanner := bufio.NewScanner(strings.NewReader(patchString))
 
 	var currentFile string
 	var currentLineNumber int
-	var foundSecret bool
+	var findings []Finding
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -72,19 +71,19 @@ func ScanPatch(patchString string, loadedRules []rules.Rule, ign *ignore.Ignorer
 
 						entropy := calculateShannonEntropy(candidate)
 						if entropy > rule.Entropy {
-							fmt.Fprintf(os.Stderr, "🚨 [xSentry] Secret found:\n")
-							fmt.Fprintf(os.Stderr, "    File:   %s\n", currentFile)
-							fmt.Fprintf(os.Stderr, "    Line:   %d\n", currentLineNumber)
-							fmt.Fprintf(os.Stderr, "    Rule:   %s (Entropy: %.2f)\n\n", rule.Name, entropy)
-							foundSecret = true
+							findings = append(findings, Finding{
+								File:    currentFile,
+								Line:    currentLineNumber,
+								Details: fmt.Sprintf("%s (Entropy: %.2f)", rule.Name, entropy),
+							})
 						}
 					}
 				} else {
-					fmt.Fprintf(os.Stderr, "🚨 [xSentry] Secret found:\n")
-					fmt.Fprintf(os.Stderr, "    File:   %s\n", currentFile)
-					fmt.Fprintf(os.Stderr, "    Line:   %d\n", currentLineNumber)
-					fmt.Fprintf(os.Stderr, "    Rule:   %s\n\n", rule.Name)
-					foundSecret = true
+					findings = append(findings, Finding{
+						File:    currentFile,
+						Line:    currentLineNumber,
+						Details: rule.Name,
+					})
 				}
 			}
 			currentLineNumber++
@@ -94,10 +93,10 @@ func ScanPatch(patchString string, loadedRules []rules.Rule, ign *ignore.Ignorer
 	}
 
 	if err := scanner.Err(); err != nil {
-		return false, fmt.Errorf("error reading patch string: %w", err)
+		return nil, fmt.Errorf("error reading patch string: %w", err)
 	}
 
-	return foundSecret, nil
+	return findings, nil
 }
 
 func BuildFakePatch(input string) string {
